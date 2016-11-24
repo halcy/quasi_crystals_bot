@@ -31,3 +31,9 @@
 # Debug files
 *.dSYM/
 *.su
+
+# Compiled python
+*.pyc
+
+# SECRET FILES (credentials and such)
+*.secret
