@@ -35,9 +35,11 @@ wordfile = open("wordlist.txt", "r")
 wordlist = wordfile.readlines()
 wordfile.close()
 
+# Thread handler that adds users that @ the bot to a queue
 replyQueue = Queue()
 def getReplies():
     lastId = None
+    lastIdMastodon = None
     while(True):
         try:
             replies = None 
@@ -52,13 +54,33 @@ def getReplies():
                 replies.reverse()
                 
             for reply in replies:
-                replyQueue.put(reply.user.screen_name)
+                replyQueue.put((reply.user.screen_name, "twitter"))
                 print("New entry to reply queue: " + str(reply.user.screen_name))
-            time.sleep(60 * 5)
         except:
             print("Hit rate limit in get-replies")
             time.sleep(60 * 5)
     
+        try:
+            replies = None
+            if lastIdMastodon == None:
+                replies = mastodon_api.timeline("mentions")
+            else:
+                print("Mastodon: Fetching replies since " + str(lastIdMastodon))
+                replies = mastodon_api.timeline("mentions", since_id = lastIdMastodon)
+
+            if len(replies) > 0:
+                lastIdMastodon= replies[0]["id"]
+                replies.reverse()
+
+            for reply in replies:
+                replyQueue.put((reply["account"]["acct"], "mastodon"))
+                print("Mastodon: New entry to reply queue: " + str(reply["account"]["acct"]))
+        except:
+            print("Mastodon: Error in fetch replies")
+            time.sleep(60 * 5)
+
+        time.sleep(60 * 5)
+
 Process(target = getReplies, daemon = True).start()
 
 servedUsers = []
@@ -66,9 +88,12 @@ nextSeeds = []
 
 # Clear user queue once on startup
 time.sleep(5)
+debugExclude = [("chimericalgirls", "mastodon"), ("halcy", "mastodon")]
 while(not replyQueue.empty()):
-   servedUsers.append(replyQueue.get())
-    
+   servedUser = replyQueue.get()
+   if not servedUser in debugExclude:
+       servedUsers.append(servedUser)
+
 startTime = 0
 pauseTime = 60 * 60 * 3
 while(True):
@@ -77,14 +102,14 @@ while(True):
         continueQueueGet = True
         while continueQueueGet:
             try:
-                print("Polling user queue.")
+                print("Polling user queues.")
                 user = replyQueue.get(False)
             except:
                 continueQueueGet = False
                 break
             if user != None:
                 if not user in servedUsers and not user in nextSeeds:
-                    print("Appending " + user + " to work queue.")
+                    print("Appending " + str(user) + " to work queue.")
                     nextSeeds.append(user)
                     servedUsers.append(user)
                 if(len(servedUsers) > 300):
@@ -94,13 +119,14 @@ while(True):
         if(time.time() - startTime > pauseTime):
             print("Time for seed post, prepending to work queue...")
             startTime = time.time()
-            nextSeeds = ["___GEN___"] + nextSeeds
+            nextSeeds = [("___GEN___", "both")] + nextSeeds
             
         print("Sleeping until next check.")
         time.sleep(60)
     print("Current queue: " + str(nextSeeds))
 
-    seedphrase = nextSeeds.pop(0)
+    seeduser = nextSeeds.pop(0)
+    seedphrase = seeduser[0]
     userSpec = True
     if(seedphrase == "___GEN___"):
         seedphrase = ""
@@ -141,17 +167,18 @@ while(True):
 
     # Post to twitter
     try:
-        if mediaFile != None:
-            print("Twitter media upload... mediafile is " + mediaFile)
-            mediaIdTwitter = [twitter_api.UploadMediaChunked(media = mediaFile)]
-        else:
-            mediaIdTwitter = None
+        if seeduser[1] == "twitter":
+            if mediaFile != None:
+                print("Twitter media upload... mediafile is " + mediaFile)
+                mediaIdTwitter = [twitter_api.UploadMediaChunked(media = mediaFile)]
+            else:
+                mediaIdTwitter = None
         
-        print("Tweeting...")
-        if userSpec == False:
-            twitter_api.PostUpdate("seed phrase: " + seedphrase + "(HQ: " + hqLink + " )", media = mediaIdTwitter)
-        else:
-            twitter_api.PostUpdate("@" + seedphrase + " here is your personal quasicrystal: (HQ: " + hqLink + " )" , media = mediaIdTwitter)
+            print("Tweeting...")
+            if userSpec == False:
+                twitter_api.PostUpdate("seed phrase: " + seedphrase + "(HQ: " + hqLink + " )", media = mediaIdTwitter)
+            else:
+                twitter_api.PostUpdate("@" + seedphrase + " here is your personal quasicrystal: (HQ: " + hqLink + " )" , media = mediaIdTwitter)
     except:
         print("Encountered error in post tweet. Whatever.")
         e = sys.exc_info()[0]
@@ -159,15 +186,18 @@ while(True):
 
     # Post to Mastodon
     try:
-        if mediaFile != None:
-            print("Mastodon media upload... mediafile is " + mediaFile)
-            mediaIdsMastodon = [mastodon_api.media_post(mediaFile)["id"]]
-        else:
-            mediaIdsMastodon = []
-
-        print("Tooting...")
-        if userSpec == False:
-            mastodon_api.status_post("seed phrase: " + seedphrase + "(HQ: " + hqLink + " )", media_ids = mediaIdsMastodon)
+        if seeduser[1] == "mastodon":
+            if mediaFile != None:
+                print("Mastodon media upload... mediafile is " + mediaFile)
+                mediaIdsMastodon = [mastodon_api.media_post(mediaFile)["id"]]
+            else:
+                mediaIdsMastodon = []
+            
+            print("Tooting...")
+            if userSpec == False:
+                mastodon_api.status_post("seed phrase: " + seedphrase + "(HQ: " + hqLink + " )", media_ids = mediaIdsMastodon)
+            else:
+                mastodon_api.status_post("@" + seedphrase + " here is your personal quasicrystal: (HQ: " + hqLink + " )", media_ids = mediaIdsMastodon)
 
     except:
         print("Encountered error in post toot. Whatever.")
