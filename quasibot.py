@@ -13,6 +13,7 @@ from subprocess import call
 from multiprocessing import Process, Queue
 
 import twitter
+from mastodon import Mastodon
 
 with open("twitter_credentials.secret", 'r') as secret_file:
     TWITTER_CONSUMER_KEY = secret_file.readline().rstrip()
@@ -20,10 +21,15 @@ with open("twitter_credentials.secret", 'r') as secret_file:
     TWITTER_ACCESS_KEY = secret_file.readline().rstrip()
     TWITTER_ACCESS_SECRET = secret_file.readline().rstrip()
 
-api = twitter.Api(consumer_key = TWITTER_CONSUMER_KEY,
+twitter_api = twitter.Api(consumer_key = TWITTER_CONSUMER_KEY,
                 consumer_secret = TWITTER_CONSUMER_SECRET,
                 access_token_key = TWITTER_ACCESS_KEY,
                 access_token_secret = TWITTER_ACCESS_SECRET)
+
+mastodon_api = Mastodon(
+    client_id = "mastodon_client.secret", 
+    access_token = "mastodon_user.secret"
+)
 
 wordfile = open("wordlist.txt", "r")
 wordlist = wordfile.readlines()
@@ -36,10 +42,10 @@ def getReplies():
         try:
             replies = None 
             if lastId == None:
-                replies = api.GetMentions()
+                replies = twitter_api.GetMentions()
             else:
                 print("Fetching replies since " + str(lastId))
-                replies = api.GetMentions(since_id = lastId)
+                replies = twitter_api.GetMentions(since_id = lastId)
             
             if len(replies) > 0:
                 lastId = replies[0].id
@@ -59,7 +65,7 @@ servedUsers = []
 nextSeeds = []
 
 # Clear user queue once on startup
-time.sleep(60)
+time.sleep(5)
 while(not replyQueue.empty()):
    servedUsers.append(replyQueue.get())
     
@@ -129,19 +135,42 @@ while(True):
     if not os.path.exists(mediaFile):
         mediaFile = None
     
+
+    hqLink = "http://halcy.de/quasi/" + seedhash + ".gif"
+    print("HQ link: " + hqLink)
+
+    # Post to twitter
     try:
         if mediaFile != None:
-            print("Tweeting... mediafile is " + mediaFile)
-            mediaId = [api.UploadMediaChunked(media = mediaFile)]
+            print("Twitter media upload... mediafile is " + mediaFile)
+            mediaIdTwitter = [twitter_api.UploadMediaChunked(media = mediaFile)]
         else:
-            mediaId = None
-        hqLink = "http://halcy.de/quasi/" + seedhash + ".gif"
-        print("HQ link: " + hqLink)
+            mediaIdTwitter = None
         
+        print("Tweeting...")
         if userSpec == False:
-            api.PostUpdate("seed phrase: " + seedphrase + "(HQ: " + hqLink + " )", media = mediaId)
+            twitter_api.PostUpdate("seed phrase: " + seedphrase + "(HQ: " + hqLink + " )", media = mediaIdTwitter)
         else:
-            api.PostUpdate("@" + seedphrase + " here is your personal quasicrystal: (HQ: " + hqLink + " )" , media = mediaId)
+            twitter_api.PostUpdate("@" + seedphrase + " here is your personal quasicrystal: (HQ: " + hqLink + " )" , media = mediaIdTwitter)
     except:
         print("Encountered error in post tweet. Whatever.")
+        e = sys.exc_info()[0]
+        print("Exception was: " + str(e))
+
+    # Post to Mastodon
+    try:
+        if mediaFile != None:
+            print("Mastodon media upload... mediafile is " + mediaFile)
+            mediaIdsMastodon = [mastodon_api.media_post(mediaFile)["id"]]
+        else:
+            mediaIdsMastodon = []
+
+        print("Tooting...")
+        if userSpec == False:
+            mastodon_api.status_post("seed phrase: " + seedphrase + "(HQ: " + hqLink + " )", media_ids = mediaIdsMastodon)
+
+    except:
+        print("Encountered error in post toot. Whatever.")
+        e = sys.exc_info()[0]
+        print("Exception was: " + str(e))
 

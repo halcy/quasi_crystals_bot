@@ -183,7 +183,7 @@ else:
             
 # Generate call
 argString += " ".join(map(lambda x: str(x), allParams))
-argString += " " + paletteString + " " + seedphrase + ".gif -s 350 -o 4"
+argString += " " + paletteString + " " + seedphrase + ".gif -s 100 -o 1"
 
 # Make quasicrystal
 argString = "./Quasi " + argString
