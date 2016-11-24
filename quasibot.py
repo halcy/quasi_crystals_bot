@@ -14,15 +14,16 @@ from multiprocessing import Process, Queue
 
 import twitter
 
-CONSUMER_KEY = 'CHANGEME'
-CONSUMER_SECRET = 'CHANGEME'
-ACCESS_KEY = 'CHANGEME'
-ACCESS_SECRET = 'CHANGEME'
+ith open("twitter_credentials.secret" 'r') as secret_file:
+    TWITTER_CONSUMER_KEY = secret_file.readline().rstrip()
+    TWITTER_CONSUMER_SECRET = secret_file.readline().rstrip()
+    TWITTER_ACCESS_KEY = secret_file.readline().rstrip()
+    TWITTER_ACCESS_SECRET = secret_file.readline().rstrip()
 
-api = twitter.Api(consumer_key=CONSUMER_KEY,
-                consumer_secret=CONSUMER_SECRET,
-                access_token_key=ACCESS_KEY,
-                access_token_secret=ACCESS_SECRET)
+api = twitter.Api(consumer_key = TWITTER_CONSUMER_KEY,
+                consumer_secret = TWITTER_CONSUMER_SECRET,
+                access_token_key = TWITTER_ACCESS_KEY,
+                access_token_secret = TWITTER_ACCESS_SECRET)
 
 wordfile = open("wordlist.txt", "r")
 wordlist = wordfile.readlines()
