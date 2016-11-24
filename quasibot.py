@@ -93,6 +93,8 @@ while(not replyQueue.empty()):
    servedUser = replyQueue.get()
    if not servedUser in debugExclude:
        servedUsers.append(servedUser)
+   else:
+       print("Excluding " + str(servedUser) + " from initial queue wipe due to debug exclude")
 
 startTime = 0
 pauseTime = 60 * 60 * 3
@@ -167,7 +169,7 @@ while(True):
 
     # Post to twitter
     try:
-        if seeduser[1] == "twitter":
+        if seeduser[1] == "twitter" or seeduser[1] == "both":
             if mediaFile != None:
                 print("Twitter media upload... mediafile is " + mediaFile)
                 mediaIdTwitter = [twitter_api.UploadMediaChunked(media = mediaFile)]
@@ -186,7 +188,7 @@ while(True):
 
     # Post to Mastodon
     try:
-        if seeduser[1] == "mastodon":
+        if seeduser[1] == "mastodon" or seeduser[1] == "both":
             if mediaFile != None:
                 print("Mastodon media upload... mediafile is " + mediaFile)
                 mediaIdsMastodon = [mastodon_api.media_post(mediaFile)["id"]]
