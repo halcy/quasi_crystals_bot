@@ -14,7 +14,7 @@ from multiprocessing import Process, Queue
 
 import twitter
 
-ith open("twitter_credentials.secret" 'r') as secret_file:
+with open("twitter_credentials.secret", 'r') as secret_file:
     TWITTER_CONSUMER_KEY = secret_file.readline().rstrip()
     TWITTER_CONSUMER_SECRET = secret_file.readline().rstrip()
     TWITTER_ACCESS_KEY = secret_file.readline().rstrip()
