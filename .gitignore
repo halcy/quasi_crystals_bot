@@ -37,3 +37,8 @@
 
 # SECRET FILES (credentials and such)
 *.secret
+
+# gifs / mp4s / pngs in done/ folder
+*.mp4
+*.gif
+*.png
