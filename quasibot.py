@@ -88,22 +88,7 @@ nextSeeds = []
 
 # Clear user queue once on startup
 time.sleep(5)
-debugExclude = [
-("TRASEVOL_DOG", "mastodon"), 
-("NicoleTheLizard", "mastodon"), 
-("JackoMelon", "mastodon"), 
-("TRASEVOL_DOG", "mastodon"), 
-("beck", "mastodon"), 
-("Shane", "mastodon"), 
-("esselfortium", "mastodon"), 
-("Nach", "mastodon"), 
-("hoodie", "mastodon"), 
-("online", "mastodon"), 
-("k", "mastodon"), 
-("Monophylos", "mastodon"), 
-("Lyrae", "mastodon"), 
-("Vedia_Lupae", "mastodon"),
-]
+debugExclude = []
 while(not replyQueue.empty()):
    servedUser = replyQueue.get()
    if not servedUser in debugExclude:
@@ -198,9 +183,17 @@ while(True):
             else:
                 twitter_api.PostUpdate("@" + seedphrase + " here is your personal quasicrystal: (HQ: " + hqLink + " )" , media = mediaIdTwitter)
     except:
-        print("Encountered error in post tweet. Whatever.")
+        print("Encountered error in post tweet. Trying HQ only.")
         e = sys.exc_info()[0]
         print("Exception was: " + str(e))
+
+        try:
+            if userSpec == False:
+                twitter_api.PostUpdate("seed phrase: " + seedphrase + "(HQ: " + hqLink + " )")
+            else:
+                twitter_api.PostUpdate("@" + seedphrase + " here is your personal quasicrystal: (HQ: " + hqLink + " )" )
+        except:
+            print("HQ only tweet failed. Skipping.")
 
     # Post to Mastodon
     try:
@@ -218,7 +211,14 @@ while(True):
                 mastodon_api.status_post("@" + seedphrase + " here is your personal quasicrystal: (HQ: " + hqLink + " )", media_ids = mediaIdsMastodon)
 
     except:
-        print("Encountered error in post toot. Whatever.")
+        print("Encountered error in post toot. Trying HQ only.")
         e = sys.exc_info()[0]
         print("Exception was: " + str(e))
-
+        
+        try:
+            if userSpec == False:
+                mastodon_api.status_post("seed phrase: " + seedphrase + "(HQ: " + hqLink + " )")
+            else:
+                mastodon_api.status_post("@" + seedphrase + " here is your personal quasicrystal: (HQ: " + hqLink + " )")
+        except:
+             print("HQ only toot failed. Skipping.")
