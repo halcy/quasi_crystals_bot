@@ -88,13 +88,29 @@ nextSeeds = []
 
 # Clear user queue once on startup
 time.sleep(5)
-debugExclude = [("chimericalgirls", "mastodon"), ("halcy", "mastodon")]
+debugExclude = [
+("TRASEVOL_DOG", "mastodon"), 
+("NicoleTheLizard", "mastodon"), 
+("JackoMelon", "mastodon"), 
+("TRASEVOL_DOG", "mastodon"), 
+("beck", "mastodon"), 
+("Shane", "mastodon"), 
+("esselfortium", "mastodon"), 
+("Nach", "mastodon"), 
+("hoodie", "mastodon"), 
+("online", "mastodon"), 
+("k", "mastodon"), 
+("Monophylos", "mastodon"), 
+("Lyrae", "mastodon"), 
+("Vedia_Lupae", "mastodon"),
+]
 while(not replyQueue.empty()):
    servedUser = replyQueue.get()
    if not servedUser in debugExclude:
        servedUsers.append(servedUser)
    else:
        print("Excluding " + str(servedUser) + " from initial queue wipe due to debug exclude")
+       nextSeeds.append(servedUser)
 
 startTime = 0
 pauseTime = 60 * 60 * 3
@@ -154,7 +170,7 @@ while(True):
         subprocess.call(["rm", seedhash + ".txt"])
         
         mediaFile = "done/" + seedhash + ".gif"
-        if os.path.getsize(mediaFile) > 1024 * 1024 * 4.9:
+        if os.path.getsize(mediaFile) > 1024 * 1024 * 3.9:
             mediaFile = "done/" + seedhash + ".mp4"
     except:
         print("Encountered error during encode. Link-only tweet.")
