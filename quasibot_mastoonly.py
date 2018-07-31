@@ -32,6 +32,11 @@ userCount = Value('i', 0)
 def getReplies():
     lastIdMastodon = None
     initialRun = True
+    notedUsers = []
+    if os.path.exists('served.json'):
+        with open('served.json', 'r') as f:
+            notedUsers = json.load(f)
+    print("initial noted: " + str(notedUsers))
     while(True):
         try:
             replies = None
@@ -44,18 +49,23 @@ def getReplies():
             if len(replies) > 0:
                 lastIdMastodon = replies[0]["id"]
                 replies.reverse()
-
+            
+            if(len(notedUsers) > 300):
+                notedUsers = notedUsers[len(notedUsers) - 300:]
+            
             for reply in replies:
                 if reply["type"] == "mention":
                     replyQueue.put((reply["status"]["account"]["acct"], "mastodon", reply["id"]))
-                    if initialRun == False:
+                    if initialRun == False and not reply["status"]["account"]["acct"] in notedUsers:
                         allowFor = "some time"
                         if userCount.value > 7:
                             allowFor = "several hours"
                         if userCount.value == 0:
-                            mastodon_api.status_reply(reply["status"], "I'll get right on it! Please allow for a few minutes for quasicrystal generation.", visibility="direct")
+                            mastodon_api.status_reply(reply["status"], "I'll get right on it! Please allow for a few minutes for quasicrystal generation.", visibility="direct", untag=True)
                         else:
-                            mastodon_api.status_reply(reply["status"], "Request received! The number of quasicrystals ahead of yours in the queue is " + str(userCount.value) + ". Please allow for " + allowFor + " until your quasicrystal is ready.", visibility="direct")
+                            mastodon_api.status_reply(reply["status"], "Request received! The number of quasicrystals ahead of yours in the queue is around " + str(userCount.value) + ". Please allow for " + allowFor + " until your quasicrystal is ready.", visibility="direct", untag=True)
+                    notedUsers.append(reply["status"]["account"]["acct"])
+                    userCount.value += 1
                     print("Mastodon: New entry to reply queue: " + str(reply["status"]["account"]["acct"]))
         except Exception as e:
             print("Mastodon: Error in fetch replies: " + str(e))
@@ -203,7 +213,7 @@ while(True):
                 mastodon_api.status_post("seed phrase: " + seedphrase + "(HQ: " + hqLink + " )", media_ids = mediaIdsMastodon)
             else:
                 reply_status = mastodon_api.status(seeduser[2])
-                mastodon_api.status_reply(reply_status, "here is your personal quasicrystal: (HQ: " + hqLink + " )", media_ids = mediaIdsMastodon, visibility="public")
+                mastodon_api.status_reply(reply_status, "here is your personal quasicrystal: (HQ: " + hqLink + " )", media_ids = mediaIdsMastodon, visibility="public", untag=True)
 
     except:
         print("Encountered error in post toot. Trying HQ only.")
