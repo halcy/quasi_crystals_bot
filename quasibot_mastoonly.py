@@ -55,7 +55,7 @@ def getReplies():
             
             for reply in replies:
                 if reply["type"] == "mention":
-                    replyQueue.put((reply["status"]["account"]["acct"], "mastodon", reply["status"]["id"]))
+                    replyQueue.put((reply["status"]["account"]["acct"], "mastodon", str(reply["status"]["id"])))
                     if initialRun == False and not reply["status"]["account"]["acct"] in notedUsers:
                         allowFor = "some time"
                         if userCount.value > 7:
