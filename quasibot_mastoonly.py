@@ -17,11 +17,6 @@ from multiprocessing import Process, Queue, Value
 
 from mastodon import Mastodon
 
-mastodon_api = Mastodon(
-    api_base_url = "https://botsin.space/",
-    access_token = "mastodon_user.secret"
-)
-
 wordfile = open("wordlist.txt", "r")
 wordlist = wordfile.readlines()
 wordfile.close()
@@ -30,6 +25,11 @@ wordfile.close()
 replyQueue = Queue()
 userCount = Value('i', 0)
 def getReplies():
+    mastodon_api_2 = Mastodon(
+        api_base_url = "https://botsin.space/",
+        access_token = "mastodon_user.secret"
+    )
+
     lastIdMastodon = None
     initialRun = True
     notedUsers = []
@@ -37,15 +37,16 @@ def getReplies():
         with open('served.json', 'r') as f:
             notedUsers = json.load(f)
     print("initial noted: " + str(notedUsers))
+    resetNoted = 0
     while(True):
         try:
             replies = None
             if lastIdMastodon == None:
-                replies = mastodon_api.notifications()
+                replies = mastodon_api_2.notifications()
             else:
                 print("Mastodon: Fetching replies since " + str(lastIdMastodon))
-                replies = mastodon_api.notifications(since_id = lastIdMastodon)
-                
+                replies = mastodon_api_2.notifications(since_id = lastIdMastodon)
+              
             if len(replies) > 0:
                 lastIdMastodon = replies[0]["id"]
                 replies.reverse()
@@ -61,9 +62,9 @@ def getReplies():
                         if userCount.value > 7:
                             allowFor = "several hours"
                         if userCount.value == 0:
-                            mastodon_api.status_reply(reply["status"], "I'll get right on it! Please allow for a few minutes for quasicrystal generation.", visibility="direct", untag=True)
+                            mastodon_api_2.status_reply(reply["status"], "I'll get right on it! Please allow for a few minutes for quasicrystal generation.", visibility="direct", untag=True)
                         else:
-                            mastodon_api.status_reply(reply["status"], "Request received! The number of quasicrystals ahead of yours in the queue is around " + str(userCount.value) + ". Please allow for " + allowFor + " until your quasicrystal is ready.", visibility="direct", untag=True)
+                            mastodon_api_2.status_reply(reply["status"], "Request received! The number of quasicrystals ahead of yours in the queue is around " + str(userCount.value) + ". Please allow for " + allowFor + " until your quasicrystal is ready.", visibility="direct", untag=True)
                     notedUsers.append(reply["status"]["account"]["acct"])
                     userCount.value += 1
                     print("Mastodon: New entry to reply queue: " + str(reply["status"]["account"]["acct"]))
@@ -71,9 +72,20 @@ def getReplies():
             print("Mastodon: Error in fetch replies: " + str(e))
             time.sleep(60 * 5)
         initialRun = False
+        
+        if resetNoted != int(time.time() / (60.0*60.0*24.0)):
+            resetNoted = int(time.time() / (60.0*60.0*24.0))
+            notedUsers = []
+                
+        
         time.sleep(60 * 5)
-
+        
 Process(target = getReplies, daemon = True).start()
+
+mastodon_api = Mastodon(
+    api_base_url = "https://botsin.space/",
+    access_token = "mastodon_user.secret"
+)
 
 servedUsers = []
 nextSeeds = []
@@ -126,9 +138,12 @@ atexit.register(dump_state)
 
 startTime = time.time()
 pauseTime = 60 * 60 * 3
+daySeed = 0
+daySeedPhrase = ""
 while(True):
     checkWorkOnce = True
     while(checkWorkOnce or len(nextSeeds) == 0 or (time.time() - startTime > pauseTime)):
+        userCount.value = len(nextSeeds)
         checkWorkOnce = False
         print("Checking new work...")
         continueQueueGet = True
@@ -155,17 +170,27 @@ while(True):
             
         print("Sleeping until next check.")
         time.sleep(60)
+        
+        if daySeed != int(time.time() / (60.0*60.0*24.0)):
+            daySeed = int(time.time() / (60.0*60.0*24.0))
+            daySeedPhrase = ""
+            for i in range(0, 5):
+                daySeedPhrase += random.choice(wordlist).rstrip() + " "
+            print(daySeedPhrase + str(daySeed))                
+            mastodon_api.status_post("It's a new day, and seeds have been changed! Todays lucky animals are: " + daySeedPhrase)
+            servedUsers = []
+        
     print("Current queue: " + str(nextSeeds))
 
     userCount.value = len(nextSeeds)
     seeduser = nextSeeds.pop(0)
-    seedphrase = seeduser[0]
+    seedphrase = seeduser[0] + " " + daySeedPhrase
     userSpec = True
     if(seedphrase == "___GEN___"):
         seedphrase = ""
         userSpec = False
         for i in range(0, 5):
-                seedphrase += random.choice(wordlist).rstrip() + " "
+            seedphrase += random.choice(wordlist).rstrip() + " "
 
     try:
         seedhash = str(abs(int(hashlib.sha1(seedphrase.encode("utf-8")).hexdigest(), 16)) % 4294967294)

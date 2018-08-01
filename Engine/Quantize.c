@@ -94,7 +94,7 @@ int PixelComp(const void* a, const void* b) {
     return(ExtractRed(*(Pixel*)a) + ExtractGreen(*(Pixel*)a) + ExtractBlue(*(Pixel*)a) - ExtractRed(*(Pixel*)b) - ExtractGreen(*(Pixel*)b) - ExtractBlue(*(Pixel*)b));
 }
 
-int QuantizeBitmap(const Bitmap *bitmap,uint8_t *output, Palette palette, const Bitmap* orig) {
+int QuantizeBitmap(const Bitmap *bitmap, uint8_t *output, Palette palette, const Bitmap* orig) {
     uint32_t *colourarray=calloc(256*256*256*4,1);
     uint32_t *colourarrayorig=calloc(256*256*256*4,1);
     uint32_t *colourcount=calloc(256*256*256*sizeof(int),1);

@@ -46,32 +46,40 @@ float quasi(vec2_t pos, const float phase) {
     float stripes = params[5];
     float phasespeed = params[6];
     //printf("pol pw %f / str %f / ps %f\n", planewaves, stripes, phasespeed);
-    for(float t=0.0f; t<planewaves; t++) {
-        C += pol * cos((theta * cos(t * (M_PI / planewaves)) - r * sin(t * (M_PI / planewaves))) * stripes + phase * phasespeed);
+    if(pol != 0.0) {
+        for(float t=0.0f; t<planewaves; t++) {
+            C += pol * cos((theta * cos(t * (M_PI / planewaves)) - r * sin(t * (M_PI / planewaves))) * stripes + phase * phasespeed);
+        }
     }
     
     planewaves = params[7];
     stripes = params[8];
     phasespeed = params[9];
     //printf("lin pw %f / str %f / ps %f\n", planewaves, stripes, phasespeed);
-    for(float t=0.0f; t<planewaves; t++) {        
-        C += lin * cos((pos.x * cos(t * (M_PI / planewaves)) + pos.y * sin(t * (M_PI / planewaves))) * 2.0f * M_PI * stripes + phase * phasespeed);
+    if(lin != 0.0) {
+        for(float t=0.0f; t<planewaves; t++) {        
+            C += lin * cos((pos.x * cos(t * (M_PI / planewaves)) + pos.y * sin(t * (M_PI / planewaves))) * 2.0f * M_PI * stripes + phase * phasespeed);
+        }
     }
     
     planewaves = params[10];
     stripes = params[11];
     phasespeed = params[12];
     //printf("of pol pw %f / str %f / ps %f\n", planewaves, stripes, phasespeed);
-    for(float t=0.0f; t<planewaves; t++) {
-        C += outflow_pol * cos(fabs(theta * cos(t * (M_PI / planewaves)) - r * sin(t * (M_PI / planewaves))) * stripes + phase * phasespeed);
+    if(outflow_pol != 0.0) {
+        for(float t=0.0f; t<planewaves; t++) {
+            C += outflow_pol * cos(fabs(theta * cos(t * (M_PI / planewaves)) - r * sin(t * (M_PI / planewaves))) * stripes + phase * phasespeed);
+        }
     }
     
     planewaves = params[13];
     stripes = params[14];
     phasespeed = params[15];
     //printf("of lin pw %f / str %f / ps %f\n", planewaves, stripes, phasespeed);
-    for(float t=0.0f; t<planewaves; t++) {        
-        C += outflow_lin * cos(fabs(pos.x * cos(t * (M_PI / planewaves)) + pos.y * sin(t * (M_PI / planewaves))) * 2.0f * M_PI * stripes + phase * phasespeed);
+    if(outflow_lin != 0.0) {
+        for(float t=0.0f; t<planewaves; t++) {        
+            C += outflow_lin * cos(fabs(pos.x * cos(t * (M_PI / planewaves)) + pos.y * sin(t * (M_PI / planewaves))) * 2.0f * M_PI * stripes + phase * phasespeed);
+        }
     }
     float c=((C+planewaves)/(planewaves*2.0f));
     return c;
