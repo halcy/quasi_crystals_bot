@@ -98,10 +98,10 @@ int QuantizeBitmap(const Bitmap *bitmap, uint8_t *output, Palette palette, const
     uint32_t *colourarray=calloc(256*256*256*4,1);
     uint32_t *colourarrayorig=calloc(256*256*256*4,1);
     uint32_t *colourcount=calloc(256*256*256*sizeof(int),1);
-    int numcolours=0;
-
+    uint32_t *colourindices=calloc(256*256*256*sizeof(int),1);
     Pixel* colourlist=(Pixel*)calloc(256*256*256*sizeof(Pixel),1);
-
+    int numcolours=0;
+    
     Pixel brightest = RGB(0, 0, 0);
     Pixel darkest = RGB(255, 255, 255);
 
@@ -130,6 +130,7 @@ int QuantizeBitmap(const Bitmap *bitmap, uint8_t *output, Palette palette, const
         colourcount[index]++;
         if(colourarray[index]==0) {
             colourlist[numcolours] = p;
+            colourindices[numcolours] = index + 1;
             if(palcount > 150) {            
                 if(colourarrayorig[index] != 0) {
                     // Can't be more than 256 colours in the orig image, so this is fine
@@ -143,7 +144,7 @@ int QuantizeBitmap(const Bitmap *bitmap, uint8_t *output, Palette palette, const
     }
         
     qsort(colourlist, numcolours, sizeof(Pixel), &PixelComp);
-
+    
     int bestCountBright = 0;
     int bestCountDark = 0;
     for(int i = 0; i < numcolours / 25; i++) {
@@ -161,7 +162,7 @@ int QuantizeBitmap(const Bitmap *bitmap, uint8_t *output, Palette palette, const
     if(numcolours<=256)
     {
         int n=0;
-        for(int i=0;i<256*256*256;i++)
+        /*for(int i=0;i<256*256*256;i++)
         {
             if(colourarray[i])
             {
@@ -169,8 +170,15 @@ int QuantizeBitmap(const Bitmap *bitmap, uint8_t *output, Palette palette, const
                 colourarray[i]=n;
                 n++;
             }
+        }*/
+        while(colourindices[n] != 0) {
+            int i = colourindices[n] - 1;
+            palette[n]=IndexToPixel(i);
+            colourarray[i]=n;
+            n++;
         }
-
+        
+        
         uint8_t *ptr=output;
         for(int y=0;y<bitmap->height;y++)
         for(int x=0;x<bitmap->width;x++)
@@ -191,6 +199,8 @@ int QuantizeBitmap(const Bitmap *bitmap, uint8_t *output, Palette palette, const
         float bestDiff = -1;
         
         // Terminates if index too big anyways, no need for more checks
+        float* colDiffs = calloc(sizeof(float) * numcolours, 1);
+        int lastIndex = 0;
         while(index < 256) {
             for(int col = 0; col < numcolours; col++) {
                 Pixel p = colourlist[col];
@@ -206,21 +216,19 @@ int QuantizeBitmap(const Bitmap *bitmap, uint8_t *output, Palette palette, const
                     continue;
                 }
                 
-                float colDiff = 0;
-                
-                for(int i = 0; i < index; i++) {
-                    colDiff += PixelDist(palette[i], p);
+                for(int i = lastIndex; i < index; i++) {
+                    colDiffs[col] += PixelDist(palette[i], p);
                 }
-                
-                if(colDiff > bestDiff) {
+                lastIndex = index;
+                if(colDiffs[col] > bestDiff) {
                     palette[index] = p;
-                    bestDiff = colDiff;
+                    bestDiff = colDiffs[col];
                 }
             }
             index += 1;
         }
-        
-        for(int i=0;i<256*256*256;i++)
+        free(colDiffs);
+        /*for(int i=0;i<256*256*256;i++)
         {
             if(colourarray[i])
             {
@@ -236,6 +244,23 @@ int QuantizeBitmap(const Bitmap *bitmap, uint8_t *output, Palette palette, const
                     
                 }
             }
+        }*/
+        
+        int n = 0;
+        while(colourindices[n] != 0) {
+            int i = colourindices[n] - 1;
+            Pixel p=IndexToPixel(i);
+            float bestDiff = PixelDist(palette[0], p);
+            colourarray[i] = 0;
+            for(int j = 1; j < 256; j++) {
+                float dist = PixelDist(palette[j], p);
+                if(dist < bestDiff) {
+                    bestDiff = dist;
+                    colourarray[i] = j;
+                }
+                
+            }
+            n++;
         }
         
         uint8_t *ptr=output;
@@ -288,6 +313,7 @@ int QuantizeBitmap(const Bitmap *bitmap, uint8_t *output, Palette palette, const
         
     }
 
+    free(colourindices);
     free(colourlist);
     free(colourcount);
     free(colourarrayorig);
